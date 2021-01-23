@@ -2,11 +2,11 @@ const puppeteer = require('puppeteer');
 const prompt = require('prompt-sync')();
 const format = require('date-fns/format');
 
-const HUNTINGTON_URL = "{YMCA URL}";
+const HUNTINGTON_URL = "https://outlook.office365.com/owa/calendar/BurbankIndoorPool@ymcaboston.org/bookings/";
 
 function formatDateArray(dates) {
     const formattedDates = dates.map((date) => {
-        let isoDate = new Date(date);
+        let isoDate = new Date(date.replace(/-/g, '\/').replace(/T.+/, ''))
         return format(isoDate, "E, LLL dd")
     });
 
