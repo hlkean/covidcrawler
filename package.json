@@ -1,0 +1,16 @@
+{
+  "name": "checkmypool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Amy Fairbrother",
+  "license": "ISC",
+  "dependencies": {
+    "date-fns": "^2.16.1",
+    "prompt-sync": "^4.2.0",
+    "puppeteer": "^5.5.0"
+  }
+}
