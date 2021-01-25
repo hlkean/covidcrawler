@@ -29,9 +29,8 @@ async function getReservationDates() {
         waitUntil: 'networkidle0',
     });
     await page.waitForSelector('.picker');
-    
-    // await page.click('#service_1');
-    await page.click('input[aria-label*="Lap Swim"]');
+
+    await page.click('input[aria-label*="Single" i],input[aria-label*="Solo" i]');
     
     console.log('getting bookable dates...');
     await page.waitForTimeout(3000);
