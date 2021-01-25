@@ -1,8 +1,10 @@
+require('dotenv').config();
 const puppeteer = require('puppeteer');
 const prompt = require('prompt-sync')();
 const format = require('date-fns/format');
+const open = require('open');
 
-const HUNTINGTON_URL = "https://outlook.office365.com/owa/calendar/BurbankIndoorPool@ymcaboston.org/bookings/";
+const HUNTINGTON_URL = process.env.HUNTINGTON_URL;
 
 function formatDateArray(dates) {
     const formattedDates = dates.map((date) => {
@@ -46,9 +48,7 @@ function formatDateArray(dates) {
     const bookIntent = prompt('Do you want to book any of these times? (y/n) ');
 
     if(bookIntent === "y") {
-        const whichTime = prompt('Which one? ');
-        await page.click(`#timeslot_${whichTime}`);
-        await page.screenshot({path: 'screenshot.png'});
+        await open(HUNTINGTON_URL);
     } else {
         await browser.close();
     }
