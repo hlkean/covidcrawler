@@ -30,7 +30,8 @@ async function getReservationDates() {
     });
     await page.waitForSelector('.picker');
     
-    await page.click('#service_1');
+    // await page.click('#service_1');
+    await page.click('input[aria-label*="Lap Swim"]');
     
     console.log('getting bookable dates...');
     await page.waitForTimeout(3000);
