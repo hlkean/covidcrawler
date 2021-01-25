@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "refactor": "node index2.js"
+    "start": "node index.js"
   },
   "author": "Amy Fairbrother",
   "license": "ISC",
