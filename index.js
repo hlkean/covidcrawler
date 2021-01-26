@@ -31,15 +31,7 @@ async function getReservationDates(siteIndex, browser, page) {
         }
     } catch (error) {
         console.log(error);
-        await client.messages
-        .create({
-            body: 'There was an error loading ' + siteVars.name + ': ' + siteVars.bitly,
-            from: process.env.FROM,
-            to: process.env.CONTACTS_TO
-        })
-        .then((message) => {
-            console.log(message.sid)
-        });
+        await sendMessage('There was an error loading ' + siteVars.name + ': ' + siteVars.bitly);
         // Lets try reloading:
         page.reload({ waitUntil: ["networkidle0"]});
     }
@@ -51,15 +43,7 @@ async function getReservationDates(siteIndex, browser, page) {
         const emptyIndicator = await page.$$(siteVars.emptyIndicator);
         if (!emptyIndicator.length) {
             if(siteVars.name != 'ShopRite' || inQueue) {
-                await client.messages
-                .create({
-                    body: 'There may be appointments available at ' + siteVars.name + ': ' + siteVars.bitly,
-                    from: process.env.FROM,
-                    to: process.env.CONTACTS_TO
-                })
-                .then((message) => {
-                    console.log(message.sid)
-                });
+                await sendMessage('There may be appointments available at ' + siteVars.name + ': ' + siteVars.bitly);
             }
             if (siteVars.name == 'ShopRite') {
                 if (inQueue) {
@@ -75,10 +59,25 @@ async function getReservationDates(siteIndex, browser, page) {
     return
 }
 
+async function sendMessage (text) {
+    let numArr = process.env.CONTACTS_TO.split(' | ');
+    for(let i = 0; i<numArr.length; i++) {
+        await client.messages
+        .create({
+            body: text,
+            from: process.env.FROM,
+            to: numArr[i]
+        })
+        .then((message) => {
+            console.log(message.sid)
+        });
+    }
+}
+
 async function handleShoprite (page) {
     const ctas = await page.$$('.threeColumnRow .threeColumnRow__column a.secondaryButton');
     ctas[2].click();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(4000);
     const url = await page.url();
     // Check if we made it through the queue and onto the vaccine sign up
     if(url == 'https://shoprite.reportsonline.com/shopritesched1/program/Imm/Patient/Advisory') {
@@ -112,7 +111,7 @@ const checkAppointments = async() => {
     // process.exit();
 };
 
-schedule.scheduleJob('30 * * * *', function(){
+schedule.scheduleJob('*/15 * * * *', function(){
     console.log("scheduling appointments");
     checkAppointments();
 });
