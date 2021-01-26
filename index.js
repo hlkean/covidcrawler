@@ -1,7 +1,12 @@
+require('dotenv').config()
 const puppeteer = require('puppeteer');
 const prompt = require('prompt-sync')();
 const format = require('date-fns/format');
 const open = require('open');
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = require('twilio')(accountSid, authToken);
 
 const constants = require('./constants');
 
@@ -50,17 +55,23 @@ async function getReservationDates() {
         console.log("going in pagecount number: ", siteIndex, siteVars.selectors.length);
 
         await page.waitForSelector(siteVars.selectors[pageCount]);
-        console.log("selector found");
         if (siteVars.name == 'ShopRite' && pageCount < 1) {
             await handleShoprite();
         }
         const emptyIndicator = await page.$$(siteVars.emptyIndicator);
-        if (emptyIndicator.length) {
-            console.log("No appointments available at the moment!");
-        } else {
-            console.log("something has changed on the site and we should send a text with link: " + siteVars.bitly);
+        if (!emptyIndicator.length) {
+            if(siteVars.name != 'ShopRite' || inQueue) {
+                await client.messages
+                .create({
+                    body: 'There may be appointments available at ' + siteVars.name + ': ' + siteVars.bitly,
+                    from: process.env.FROM,
+                    to: process.env.CONTACTS_TO
+                })
+                .then((message) => {
+                    console.log(message.sid)
+                });
+            }
             if (siteVars.name == 'ShopRite') { 
-                // TODO: Send text via twillio
                 if (inQueue) {
                     await page.click('#MainPart_aExitLine');
                 } else {
@@ -69,22 +80,9 @@ async function getReservationDates() {
             }
             
         }
-        console.log("adding page counter:::", pageCount);
-        pageCount++;
+        pageCount++
     }
-    console.log("made it out of while block");
     return
-    
-
-    // await page.click('input[aria-label*="Single" i],input[aria-label*="Solo" i]');
-    
-    // console.log('getting bookable dates...');
-    // await page.waitForTimeout(3000);
-    // availableDates = await page.evaluate(() => 
-    // Array.from(document.querySelectorAll('[title*="Times available"]')).map(date => date.getAttribute('data-value'))
-    // );
-    
-    // console.log('there are available times on these dates: ', formatDateArray(availableDates));
 }
 
 async function handleShoprite () {
@@ -107,16 +105,6 @@ async function handleShoprite () {
         }
     }
 }
-
-// async function goToNextPool() {
-//     if(siteIndex === constants.vaxSites.length - 1) {
-//         // end of list, exit tool
-//         process.exit();
-//     } else {
-//         siteIndex++;
-//         await getReservationDates();
-//     }
-// }
 
 (async() => {
 
