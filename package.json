@@ -1,12 +1,12 @@
 {
-  "name": "checkmypool",
+  "name": "covidcrawler",
   "version": "1.0.0",
-  "description": "",
+  "description": "Crawl NJ Vaccination site to alert when appointments are available",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "author": "Amy Fairbrother",
+  "author": "Henry Kean",
   "license": "ISC",
   "dependencies": {
     "date-fns": "^2.16.1",
