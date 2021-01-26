@@ -3,6 +3,8 @@ const puppeteer = require('puppeteer');
 const prompt = require('prompt-sync')();
 const format = require('date-fns/format');
 const open = require('open');
+var schedule = require('node-schedule');
+
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -10,14 +12,9 @@ const client = require('twilio')(accountSid, authToken);
 
 const constants = require('./constants');
 
-let siteIndex = 0;
-let browser, page;
 let inQueue = true;
 
-
-async function getReservationDates() {
-    browser = await puppeteer.launch();
-    page = await browser.newPage();
+async function getReservationDates(siteIndex, browser, page) {
     const siteVars = constants.vaxSites[siteIndex];
     let pageResponse;
     let pageCount = 0;
@@ -49,7 +46,7 @@ async function getReservationDates() {
     while(pageCount < siteVars.selectors.length) {
         await page.waitForSelector(siteVars.selectors[pageCount]);
         if (siteVars.name == 'ShopRite' && pageCount < 1) {
-            await handleShoprite();
+            await handleShoprite(page);
         }
         const emptyIndicator = await page.$$(siteVars.emptyIndicator);
         if (!emptyIndicator.length) {
@@ -64,7 +61,7 @@ async function getReservationDates() {
                     console.log(message.sid)
                 });
             }
-            if (siteVars.name == 'ShopRite') { 
+            if (siteVars.name == 'ShopRite') {
                 if (inQueue) {
                     await page.click('#MainPart_aExitLine');
                 } else {
@@ -78,7 +75,7 @@ async function getReservationDates() {
     return
 }
 
-async function handleShoprite () {
+async function handleShoprite (page) {
     const ctas = await page.$$('.threeColumnRow .threeColumnRow__column a.secondaryButton');
     ctas[2].click();
     await page.waitForTimeout(3000);
@@ -95,11 +92,14 @@ async function handleShoprite () {
     }
 }
 
-(async() => {
 
+const checkAppointments = async() => {
+    let siteIndex = 0;
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
     try {
         while(siteIndex < constants.vaxSites.length) {
-            await getReservationDates();
+            await getReservationDates(siteIndex, browser, page);
             siteIndex++;
         }
     } catch (e) {
@@ -109,5 +109,10 @@ async function handleShoprite () {
     }
         
 
-    process.exit();
-})();
+    // process.exit();
+};
+
+schedule.scheduleJob('30 * * * *', function(){
+    console.log("scheduling appointments");
+    checkAppointments();
+});
