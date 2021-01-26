@@ -11,7 +11,7 @@ module.exports = {
             name: 'ShopRite',
             url: 'https://www.shoprite.com/pharmacy/',
             bitly: 'https://bit.ly/2NChULO',
-            selector: ['.pictureWithTextAd__image', '#MainPart_divProgressbar'],
+            selectors: ['.pictureWithTextAd__image', '#MainPart_divProgressbar'],
             emptyIndicator: '#MainPart_pMessageOnQueueTicket #MainPart_divTimeBox_Holder_Frame',
         }
     ]

@@ -8,6 +8,7 @@ const constants = require('./constants');
 // let availableDates = [];
 let siteIndex = 0;
 let browser, page;
+let inQueue = true;
 
 // function formatDateArray(dates) {
 //     const formattedDates = dates.map((date) => {
@@ -23,13 +24,14 @@ async function getReservationDates() {
     console.log(`checking ${constants.vaxSites[siteIndex].name}`);
     browser = await puppeteer.launch();
     page = await browser.newPage();
-    // const siteVars = constants.vaxSites[siteIndex];
+    const siteVars = constants.vaxSites[siteIndex];
     let pageResponse;
+    let pageCount = 0;
     // Have to set user agent to get passed cloudeflare
     await page.setUserAgent('5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36');
     await page.setViewport({ width: 1080, height: 3000 });
     try {
-        pageResponse = await page.goto(constants.vaxSites[siteIndex].url, {
+        pageResponse = await page.goto(siteVars.url, {
             waitUntil: 'networkidle0',
         });
         const pageStatus = pageResponse.status();
@@ -44,28 +46,34 @@ async function getReservationDates() {
         // Lets try reloading:
         page.reload({ waitUntil: ["networkidle0"]});
     }
-    let pageCount = 0
-    while(pageCount < constants.vaxSites[siteIndex].selectors.length) {
+    while(pageCount < siteVars.selectors.length) {
+        console.log("going in pagecount number: ", siteIndex, siteVars.selectors.length);
 
-        await page.waitForSelector(constants.vaxSites[siteIndex].selectors[pageCount]);
+        await page.waitForSelector(siteVars.selectors[pageCount]);
         console.log("selector found");
-        if (constants.vaxSites[siteIndex].name == 'ShopRite' && pageCount > 0) {
-            await page.$$('.threeColumnRow .threeColumnRow__column a.secondaryButton').click();
-            await page.waitForTimeout(3000);
+        if (siteVars.name == 'ShopRite' && pageCount < 1) {
+            await handleShoprite();
         }
-        const emptyIndicator = await page.$$(constants.vaxSites[siteIndex].emptyIndicator);
+        const emptyIndicator = await page.$$(siteVars.emptyIndicator);
         if (emptyIndicator.length) {
             console.log("No appointments available at the moment!");
         } else {
-            console.log("something has changed on the site and we should send a text with link: " + constants.vaxSites[siteIndex].bitly);
-            if (constants.vaxSites[siteIndex].name == 'ShopRite') {
-                console.log("exiting shoprite");
-                await page.click('#MainPart_aExitLine');
+            console.log("something has changed on the site and we should send a text with link: " + siteVars.bitly);
+            if (siteVars.name == 'ShopRite') { 
+                // TODO: Send text via twillio
+                if (inQueue) {
+                    await page.click('#MainPart_aExitLine');
+                } else {
+                    pageCount = siteVars.selectors.length
+                }
             }
-            // TODO: Send text via twillio
+            
         }
+        console.log("adding page counter:::", pageCount);
         pageCount++;
     }
+    console.log("made it out of while block");
+    return
     
 
     // await page.click('input[aria-label*="Single" i],input[aria-label*="Solo" i]');
@@ -77,6 +85,27 @@ async function getReservationDates() {
     // );
     
     // console.log('there are available times on these dates: ', formatDateArray(availableDates));
+}
+
+async function handleShoprite () {
+    const ctas = await page.$$('.threeColumnRow .threeColumnRow__column a.secondaryButton');
+    console.log("found ctas", ctas);
+    ctas[2].click();
+    console.log("clicked the cta");
+    await page.waitForTimeout(3000);
+    const url = await page.url();
+    console.log("url:::", url);
+    // Check if we made it through the queue and onto the vaccine sign up
+    if(url == 'https://shoprite.reportsonline.com/shopritesched1/program/Imm/Patient/Advisory') {
+        const covidAlerts = await page.evaluate(() => Array.from(document.querySelectorAll('.leftPaddingOnly h2 p'), div => div.innerText))
+        if(
+            covidAlerts.length > 1 && 
+            covidAlerts[1] == 'There are currently no COVID-19 vaccine appointments available.  Please check back later.  We appreciate your patience as we open as many appointments as possible.  Thank you.'
+        ) {
+            console.log("no more vaccines");
+            inQueue = false;
+        }
+    }
 }
 
 // async function goToNextPool() {
@@ -91,40 +120,50 @@ async function getReservationDates() {
 
 (async() => {
 
-    while(siteIndex < constants.vaxSites.length) {
-        // if(availableDates.length > 0) {
-            await getReservationDates();
-            siteIndex++;
+    try {
+        while(siteIndex < constants.vaxSites.length) {
+            // if(availableDates.length > 0) {
+                console.log("going in number: ", siteIndex, constants.vaxSites.length);
+                await getReservationDates();
+                siteIndex++;
 
-            // const selectedDate = prompt('which date? -- "next" for next pool ');
-            // if(selectedDate === 'next') {
-            //     await goToNextPool();
+                // const selectedDate = prompt('which date? -- "next" for next pool ');
+                // if(selectedDate === 'next') {
+                //     await goToNextPool();
+                // } else {
+                //     console.log('looking up available times...');
+                //     await page.click(`[data-value="${availableDates[selectedDate]}"]`);
+
+                //     const availableTimes = await page.evaluate(() => 
+                //         Array.from(document.querySelectorAll('.timePicker li label span')).map(time => time.innerText)
+                //     );
+
+                //     console.log('these are the available times: ', availableTimes);
+                    
+                //     const bookIntent = prompt('Do you want to book any of these times? (y/n) -- (next for next pool) ');
+
+                //     if(bookIntent === 'y') {
+                //         console.log('opening a browser window');
+                //         await open(constants.vaxSites[siteIndex].url);
+                //         // assume booking, close process
+                //         process.exit();
+                //     } else if (bookIntent === 'next') {
+                //         await goToNextPool();
+                //     }
+                // }
             // } else {
-            //     console.log('looking up available times...');
-            //     await page.click(`[data-value="${availableDates[selectedDate]}"]`);
-
-            //     const availableTimes = await page.evaluate(() => 
-            //         Array.from(document.querySelectorAll('.timePicker li label span')).map(time => time.innerText)
-            //     );
-
-            //     console.log('these are the available times: ', availableTimes);
-                
-            //     const bookIntent = prompt('Do you want to book any of these times? (y/n) -- (next for next pool) ');
-
-            //     if(bookIntent === 'y') {
-            //         console.log('opening a browser window');
-            //         await open(constants.vaxSites[siteIndex].url);
-            //         // assume booking, close process
-            //         process.exit();
-            //     } else if (bookIntent === 'next') {
-            //         await goToNextPool();
-            //     }
+            //     siteIndex++;
+            //     await getReservationDates();
             // }
-        // } else {
-        //     siteIndex++;
-        //     await getReservationDates();
-        // }
+        }
+    } catch (e) {
+        console.log("In catch block");
+        console.log(e)
+    } finally {
+        console.log("closing browser");
+        await browser.close();
     }
+        
 
     process.exit();
 })();
