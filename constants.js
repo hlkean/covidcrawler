@@ -4,14 +4,14 @@ module.exports = {
             name: 'Union',
             url: 'https://ucnjvaccine.org/index.php/vaccine/vaccine_availability',
             bitly: 'http://bit.ly/39k8zkh',
-            selectors: ['#datatable-grouping'],
+            selector: ['#datatable-grouping'],
             emptyIndicator: '.dataTables_empty'
         },
         { 
             name: 'ShopRite',
             url: 'https://www.shoprite.com/pharmacy/',
             bitly: 'https://bit.ly/2NChULO',
-            selectors: ['.pictureWithTextAd__image', '#MainPart_divProgressbar'],
+            selector: ['.pictureWithTextAd__image'],
             emptyIndicator: '#MainPart_pMessageOnQueueTicket #MainPart_divTimeBox_Holder_Frame',
         }
     ]
